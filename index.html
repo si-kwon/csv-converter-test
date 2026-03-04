@@ -1,58 +1,30 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <!--
-    If you are serving your web app in a path other than the root, change the
-    href value below to reflect the base path you are serving from.
-
-    The path provided below has to start and end with a slash "/" in order for
-    it to work correctly.
-
-    For more details:
-    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
-
-    This is a placeholder for base href that will be replaced by the value of
-    the `--base-href` argument provided to `flutter build`.
-  -->
   <base href="/csv-converter-test/">
-  <script src="coi-serviceworker.js"></script>
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="Vworld Utilization Model - convert csv to xlsx">
-  <meta name="viewport" content="width=720, initial-scale=1.0, minimum-scale=0.5">
-  <!-- iOS meta tags & icons -->
-  <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="csv2xslx">
-  <link rel="apple-touch-icon" href="icons/Icon-192.png">
-
-  <!-- Favicon -->
-  <link rel="icon" type="image/png" href="favicon.png"/>
-
-  <title>csv2xslx</title>
-  <script src="zip.min.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CSV → Excel 변환기</title>
   <link rel="manifest" href="manifest.json">
-</head>
-<body>
+
+  <!-- zip.js: ZIP 전체 다운로드용 -->
+  <script src="zip.min.js"></script>
+
+  <!-- ZIP 전체 다운로드 헬퍼 (Flutter ConversionService에서 호출) -->
   <script>
-    // ── ZIP 전체 다운로드 헬퍼 (Flutter에서 호출) ──
-    // ConversionService._jsDownloadZip() 이 호출하는 전역 함수
     window.downloadAllFilesAsZip = async function(fileNames, fileContents) {
       const { BlobWriter, ZipWriter, Uint8ArrayReader } = zip;
-
       const blobWriter = new BlobWriter("application/zip");
       const zipWriter = new ZipWriter(blobWriter);
-
       for (let i = 0; i < fileNames.length; i++) {
         await zipWriter.add(
           fileNames[i],
           new Uint8ArrayReader(new Uint8Array(fileContents[i]))
         );
       }
-
       await zipWriter.close();
       const blob = await blobWriter.getData();
-
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
@@ -62,23 +34,21 @@
     };
   </script>
 
+  <!-- 메인 스레드 메모리 측정 함수 (Worker는 performance.memory=0 Chrome 버그 우회) -->
   <script>
-    window.addEventListener('load', function(ev) {
-      _flutter.loader.load({
-        onEntrypointLoaded: async function(engineInitializer) {
-          const appRunner = await engineInitializer.initializeEngine();
-          await appRunner.runApp();
-        }
-      });
-    });
+    function _jsGetPerformanceMemory() {
+      if (typeof performance === 'undefined' || !performance.memory) return null;
+      const m = performance.memory;
+      if (m.jsHeapSizeLimit <= 0) return null;
+      return {
+        usedMB:  m.usedJSHeapSize  / 1024 / 1024,
+        totalMB: m.jsHeapSizeLimit / 1024 / 1024,
+      };
+    }
   </script>
-  <script>
-    // CanvasKit을 CDN이 아닌 로컬 파일에서 로드
-    window.flutterConfiguration = {
-      canvasKitBaseUrl: "canvaskit/"
-    };
-  </script>
-  <script src="flutter_bootstrap.js" async></script>
+</head>
+<body>
 
+<script src="flutter_bootstrap.js"></script>
 </body>
 </html>

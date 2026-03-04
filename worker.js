@@ -66,17 +66,19 @@ const SHEET_FOOTER = enc.encode(`</sheetData></worksheet>`);
 // ── 동적 메모리 관리자 ──
 // ══════════════════════════════════════════════
 const MemMgr = {
-  // crossOriginIsolated=true일 때만 performance.memory 실측 가능
-  // GitHub Pages: coi-serviceworker.js로 COOP/COEP 주입 시 활성화
-  supported: typeof performance !== 'undefined'
-    && !!performance.memory
-    && (typeof crossOriginIsolated === 'undefined' || crossOriginIsolated),
+  // Worker에서는 performance.memory가 0 반환(Chrome 버그) →
+  // 메인 스레드가 주기적으로 측정해 'memFromMain' 메시지로 전달
+  supported: false,          // Worker 자체 측정 비활성
   flushThreshold: 32 * 1024 * 1024,
   accumulatedBytes: 0,
   lastUsageRatio: 0,
   lastUsedMB: -1,
   lastTotalMB: -1,
-  measureMode: 'unknown',  // 'heap' | 'estimate' | 'unknown'
+  measureMode: 'main',       // 'main' | 'estimate' | 'unknown'
+  // 메인 스레드에서 받은 최신 값
+  mainUsedMB: -1,
+  mainTotalMB: -1,
+  mainRatio: -1,
 
   measure() {
     // Chrome/Edge: performance.memory 실측
@@ -152,6 +154,7 @@ let _sheetCount   = 0;
 let _freezeHeader = false;
 let _headerBytes  = null;  // 첫 배치의 첫 행 범위 Uint8Array (freezeHeader용)
 let _rowCount     = 0;
+let _rowOffset    = 0;     // freezeHeader 시 행 번호 오프셋
 let _blobParts    = [];
 let _flushedBlobs = [];
 let _chain        = Promise.resolve();
@@ -184,10 +187,12 @@ CsvXlsx({
       message: `구분자 감지: ${label} — ${colCount}열` });
   },
 
+  // freezeHeader 시 2번째 시트부터 행 번호 오프셋 (+1, 헤더가 r=1 차지)
   onStart: function() {
     _sheetCount++;
     const idx = _sheetCount;
-    _rowCount     = 0;
+    _rowCount      = 0;
+    _rowOffset     = 0;   // 행 번호 오프셋
     _blobParts    = [SHEET_HEADER];
     _flushedBlobs = [];
     MemMgr.reset();
@@ -195,7 +200,8 @@ CsvXlsx({
     if (_freezeHeader && idx > 1 && _headerBytes !== null) {
       _blobParts.push(_headerBytes);
       MemMgr.add(_headerBytes.byteLength);
-      _rowCount = 1;
+      _rowCount  = 1;
+      _rowOffset = 1;  // C++ 배치의 r 번호에 +1 오프셋
     }
 
     _chain = _chain.then(() => {
@@ -207,10 +213,7 @@ CsvXlsx({
   // C++에서 500행 묶음 XML 문자열을 한 번에 전달
   // onRow 대신 onBatch: enc.encode 호출 1/500로 감소
   onBatch: function(batchXml) {
-    const bytes = enc.encode(batchXml);
-
-    // freezeHeader: 첫 번째 배치에서 첫 행의 XML만 추출해 저장
-    // 배치 XML = "<row r="1">...</row><row r="2">...</row>..."
+    // freezeHeader: 첫 번째 배치에서 첫 행의 XML만 추출해 저장 (r="1" 원본)
     if (_freezeHeader && _headerBytes === null && batchXml.length > 0) {
       const end = batchXml.indexOf('</row>');
       if (end !== -1) {
@@ -218,13 +221,23 @@ CsvXlsx({
       }
     }
 
-    // 배치에 포함된 행 수 카운트 (빠른 추정: </row> 개수)
+    // freezeHeader + 2번째 시트: r 번호에 오프셋 적용
+    // C++은 currentRow=1부터 생성하지만 헤더가 이미 r=1을 차지 → +1
+    let xmlToEncode = batchXml;
+    if (_rowOffset > 0) {
+      // <row r="N"> 와 <c r="XN" 의 숫자 N을 N+offset으로 치환
+      // 정규식: row r="숫자" 와 c r="열문자숫자"
+      xmlToEncode = batchXml
+        .replace(/(<row r=")(\d+)(")/g, (_, a, n, b) => a + (parseInt(n) + _rowOffset) + b)
+        .replace(/(<c r="[A-Z]+)(\d+)(")/g, (_, a, n, b) => a + (parseInt(n) + _rowOffset) + b);
+    }
+
+    const bytes = enc.encode(xmlToEncode);
+
+    // 행 수 카운트
     let batchRowCnt = 0;
     let pos = 0;
-    while ((pos = batchXml.indexOf('</row>', pos)) !== -1) {
-      batchRowCnt++;
-      pos += 6;
-    }
+    while ((pos = batchXml.indexOf('</row>', pos)) !== -1) { batchRowCnt++; pos += 6; }
     processedRows += batchRowCnt;
     _rowCount     += batchRowCnt;
 
@@ -239,7 +252,8 @@ CsvXlsx({
 
   onEnd: function() {
     const idx      = _sheetCount;
-    const rowCount = _rowCount;
+    // 헤더 행(_rowOffset분)은 제외한 실제 데이터 행 수 보고
+    const rowCount = _rowCount - _rowOffset;
     _blobParts.push(SHEET_FOOTER);
     flushParts();
 
@@ -291,7 +305,6 @@ CsvXlsx({
     message: `진단 — crossOriginIsolated: ${coi} | performance.memory: ${hasMem} | ${memInfo}` });
 
   MemMgr.adjust();
-
   self.postMessage({ type: "log", level: "info",
     message: `WASM 초기화 완료 — 메모리 ${MemMgr.label()}` });
   if (pendingStart) { handleStart(pendingStart); pendingStart = null; }
@@ -303,6 +316,7 @@ function cleanup() {
   _blobParts    = [];
   _flushedBlobs = [];
   _headerBytes  = null;
+  _rowOffset    = 0;
   pendingStart  = null;
   _chain        = Promise.resolve();
   MemMgr.accumulatedBytes = 0;
@@ -313,7 +327,6 @@ function cleanup() {
     try { wasmModule._init(0); } catch(_) {}
   }
 
-
 }
 
 self.onmessage = async (e) => {
@@ -322,6 +335,10 @@ self.onmessage = async (e) => {
     else await handleStart(e.data);
   } else if (e.data.type === "cleanup") {
     cleanup();
+  } else if (e.data.type === "memFromMain") {
+    // 메인 스레드에서 performance.memory 측정값 수신
+    MemMgr.updateFromMain(e.data.usedMB, e.data.totalMB);
+    MemMgr.adjust(); // flush 임계값 재조정
   }
 };
 
@@ -331,6 +348,7 @@ async function handleStart(data) {
   _sheetCount    = 0;
   _freezeHeader  = !!data.freezeHeader;
   _headerBytes   = null;
+  _rowOffset     = 0;
   _blobParts     = [];
   _flushedBlobs  = [];
   _chain         = Promise.resolve();
