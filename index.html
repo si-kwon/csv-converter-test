@@ -72,6 +72,12 @@
       });
     });
   </script>
+  <script>
+    // CanvasKit을 CDN이 아닌 로컬 파일에서 로드
+    window.flutterConfiguration = {
+      canvasKitBaseUrl: "canvaskit/"
+    };
+  </script>
   <script src="flutter_bootstrap.js" async></script>
 
 </body>
