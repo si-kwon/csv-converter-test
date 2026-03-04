@@ -37892,13 +37892,13 @@ return A.oC(A.nb(A.aiE(B.E,new A.dV(B.yA,A.t8(A.bi(10),A.akO(B.i,A.cd(A.c([q.Ve(
 Ve(a){var s,r=null
 B.b.AI(B.ff,new A.aaI(),new A.aaJ())
 s=t.p
-return A.aY(r,A.b2(A.c([A.aY(r,B.Dk,B.l,r,r,new A.aU(A.a5(38,B.G.n()>>>16&255,B.G.n()>>>8&255,B.G.n()&255),r,r,A.bi(6),r,r,B.w),r,r,r,B.Cn,r,r,r),B.co,A.cd(A.c([B.RV,A.aj("\ucd5c\uc2e0 \ubc84\uc804: v1.0  \xb7  2025\ub144 3\uc6d4",r,r,B.NO,r)],s),B.a_,B.k,B.n),B.bP,A.atg(r,B.Dd,r,r,new A.aaK(a),r,18,r,"\ub2eb\uae30")],s),B.v,B.k,B.n,0),B.l,r,r,B.yK,r,r,r,B.Cd,r,r,r)},
+return A.aY(r,A.b2(A.c([A.aY(r,B.Dk,B.l,r,r,new A.aU(A.a5(38,B.G.n()>>>16&255,B.G.n()>>>8&255,B.G.n()&255),r,r,A.bi(6),r,r,B.w),r,r,r,B.Cn,r,r,r),B.co,A.cd(A.c([B.RV,A.aj("\ucd5c\uc2e0 \ubc84\uc804: v1.0  \xb7  2026\ub144 3\uc6d4",r,r,B.NO,r)],s),B.a_,B.k,B.n),B.bP,A.atg(r,B.Dd,r,r,new A.aaK(a),r,18,r,"\ub2eb\uae30")],s),B.v,B.k,B.n,0),B.l,r,r,B.yK,r,r,r,B.Cd,r,r,r)},
 Vl(){var s=null
 return A.dB(A.aY(s,A.ajK(s,new A.aaN(this),1,B.BZ),B.l,B.kY,s,s,s,s,s,s,s,s,s),s,130)},
 Vc(){var s,r,q=null,p=t.p,o=A.c([A.aj("v1.0",q,q,B.N5,q),B.cn],p)
 o.push(A.aY(q,B.RU,B.l,q,q,new A.aU(B.G,q,q,A.bi(4),q,q,B.w),q,q,q,B.i1,q,q,q))
 o.push(B.bP)
-o.push(A.aj("2025\ub144 3\uc6d4",q,q,B.QR,q))
+o.push(A.aj("2026\ub144 3\uc6d4",q,q,B.QR,q))
 o=A.b2(o,B.v,B.k,B.n,0)
 s=A.bi(6)
 r=A.dt(B.AA,1)
@@ -37922,7 +37922,7 @@ $0(){return A.p8(this.a,!1).e7()},
 $S:0}
 A.aaN.prototype={
 $2(a,b){var s,r=null,q=this.a,p=b===q.r,o=p?B.G:B.E,n=A.bi(6),m=A.aj("v1.0",r,r,A.b8(r,r,p?B.i:B.bh,r,r,r,r,r,r,r,r,13,r,r,B.X,r,r,!0,r,r,r,r,r,r,r,r),r),l=t.p
-l=A.c([A.cs(A.cd(A.c([m,B.Mf,A.aj("2025\ub144 3\uc6d4",r,r,A.b8(r,r,p?B.H:B.bF,r,r,r,r,r,r,r,r,10,r,r,r,r,r,!0,r,r,r,r,r,r,r,r),r)],l),B.a_,B.k,B.n),1)],l)
+l=A.c([A.cs(A.cd(A.c([m,B.Mf,A.aj("2026\ub144 3\uc6d4",r,r,A.b8(r,r,p?B.H:B.bF,r,r,r,r,r,r,r,r,10,r,r,r,r,r,!0,r,r,r,r,r,r,r,r),r)],l),B.a_,B.k,B.n),1)],l)
 m=p?A.a5(51,B.i.n()>>>16&255,B.i.n()>>>8&255,B.i.n()&255):A.a5(B.c.ae(25.5),B.G.n()>>>16&255,B.G.n()>>>8&255,B.G.n()&255)
 s=A.bi(3)
 l.push(A.aY(r,A.aj("\ucd5c\uc2e0",r,r,A.b8(r,r,p?B.i:B.G,r,r,r,r,r,r,r,r,9,r,r,B.X,r,r,!0,r,r,r,r,r,r,r,r),r),B.l,r,r,new A.aU(m,r,r,s,r,r,B.w),r,r,r,B.Cj,r,r,r))
