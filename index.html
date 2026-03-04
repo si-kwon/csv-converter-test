@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <!--
+    If you are serving your web app in a path other than the root, change the
+    href value below to reflect the base path you are serving from.
+
+    The path provided below has to start and end with a slash "/" in order for
+    it to work correctly.
+
+    For more details:
+    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
+
+    This is a placeholder for base href that will be replaced by the value of
+    the `--base-href` argument provided to `flutter build`.
+  -->
+  <base href="/csv-converter-test/">
+
+  <meta charset="UTF-8">
+  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
+  <meta name="description" content="Vworld Utilization Model - convert csv to xlsx">
+  <meta name="viewport" content="width=720, initial-scale=1.0, minimum-scale=0.5">
+  <!-- iOS meta tags & icons -->
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="csv2xslx">
+  <link rel="apple-touch-icon" href="icons/Icon-192.png">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="favicon.png"/>
+
+  <title>csv2xslx</title>
+  <script src="zip.min.js"></script>
+  <link rel="manifest" href="manifest.json">
+</head>
+<body>
+  <script>
+    // ── ZIP 전체 다운로드 헬퍼 (Flutter에서 호출) ──
+    // ConversionService._jsDownloadZip() 이 호출하는 전역 함수
+    window.downloadAllFilesAsZip = async function(fileNames, fileContents) {
+      const { BlobWriter, ZipWriter, Uint8ArrayReader } = zip;
+
+      const blobWriter = new BlobWriter("application/zip");
+      const zipWriter = new ZipWriter(blobWriter);
+
+      for (let i = 0; i < fileNames.length; i++) {
+        await zipWriter.add(
+          fileNames[i],
+          new Uint8ArrayReader(new Uint8Array(fileContents[i]))
+        );
+      }
+
+      await zipWriter.close();
+      const blob = await blobWriter.getData();
+
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "converted_excel_files.zip";
+      a.click();
+      URL.revokeObjectURL(url);
+    };
+  </script>
+
+  <script>
+    window.addEventListener('load', function(ev) {
+      _flutter.loader.load({
+        onEntrypointLoaded: async function(engineInitializer) {
+          const appRunner = await engineInitializer.initializeEngine();
+          await appRunner.runApp();
+        }
+      });
+    });
+  </script>
+  <script src="flutter_bootstrap.js" async></script>
+
+</body>
+</html>
