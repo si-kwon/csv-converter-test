@@ -160,6 +160,23 @@ function flushParts() {
 CsvXlsx({
   locateFile: (path) => 'wasm/' + path,
 
+  // C++이 첫 줄 분석 후 구분자 감지 결과 전달
+  onDelimiter: function(delim, colCount, sample) {
+    const label =
+      delim === ','  ? ', (쉼표)' :
+      delim === '|'  ? '| (파이프)' :
+      delim === '\t' ? '\t (탭)' : '; (세미콜론)';
+    self.postMessage({
+      type: 'delimiter',
+      delim,
+      colCount,
+      sample,
+      label,
+    });
+    self.postMessage({ type: 'log', level: 'info',
+      message: `구분자 감지: ${label} — ${colCount}열` });
+  },
+
   onStart: function() {
     _sheetCount++;
     const idx = _sheetCount;
@@ -257,7 +274,7 @@ CsvXlsx({
   wasmModule  = instance;
   moduleReady = true;
   MemMgr.adjust();
-
+  console.log("[worker] WASM 준비 완료");
   self.postMessage({ type: "log", level: "info",
     message: `WASM 초기화 완료 — 메모리 ${MemMgr.label()}` });
   if (pendingStart) { handleStart(pendingStart); pendingStart = null; }
@@ -279,7 +296,7 @@ function cleanup() {
     try { wasmModule._init(0); } catch(_) {}
   }
 
-
+  console.log("[worker] cleanup 완료 — 메모리 해제됨");
 }
 
 self.onmessage = async (e) => {
