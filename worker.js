@@ -66,11 +66,7 @@ const SHEET_FOOTER = enc.encode(`</sheetData></worksheet>`);
 // ── 동적 메모리 관리자 ──
 // ══════════════════════════════════════════════
 const MemMgr = {
-  // crossOriginIsolated=true일 때만 performance.memory 실측 가능
-  // GitHub Pages: coi-serviceworker.js로 COOP/COEP 주입 시 활성화
-  supported: typeof performance !== 'undefined'
-    && !!performance.memory
-    && (typeof crossOriginIsolated === 'undefined' || crossOriginIsolated),
+  supported: typeof performance !== 'undefined' && !!performance.memory,
   flushThreshold: 32 * 1024 * 1024,
   accumulatedBytes: 0,
   lastUsageRatio: 0,
@@ -97,13 +93,10 @@ const MemMgr = {
     const deviceRAM = (typeof navigator !== 'undefined' && navigator.deviceMemory)
       ? navigator.deviceMemory * 1024  // GB → MB
       : 2048;                           // 알 수 없으면 2GB 가정
-    this.lastUsageRatio = 0;
-    this.lastUsedMB  = -1;
+    this.lastUsageRatio = 0;            // 미측정
+    this.lastUsedMB  = -1;             // 미측정 표시
     this.lastTotalMB = deviceRAM;
-    // crossOriginIsolated 여부에 따라 원인 구분
-    this.measureMode = (typeof crossOriginIsolated !== 'undefined' && !crossOriginIsolated)
-      ? 'no-coi'      // Cross-Origin Isolated 아님 → coi-serviceworker 필요
-      : 'estimate';   // API 자체 미지원
+    this.measureMode = 'estimate';
     return { ratio: -1, usedMB: -1, totalMB: deviceRAM };
   },
 
