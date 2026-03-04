@@ -66,7 +66,11 @@ const SHEET_FOOTER = enc.encode(`</sheetData></worksheet>`);
 // ── 동적 메모리 관리자 ──
 // ══════════════════════════════════════════════
 const MemMgr = {
-  supported: typeof performance !== 'undefined' && !!performance.memory,
+  // crossOriginIsolated=true일 때만 performance.memory 실측 가능
+  // GitHub Pages: coi-serviceworker.js로 COOP/COEP 주입 시 활성화
+  supported: typeof performance !== 'undefined'
+    && !!performance.memory
+    && (typeof crossOriginIsolated === 'undefined' || crossOriginIsolated),
   flushThreshold: 32 * 1024 * 1024,
   accumulatedBytes: 0,
   lastUsageRatio: 0,
@@ -93,10 +97,13 @@ const MemMgr = {
     const deviceRAM = (typeof navigator !== 'undefined' && navigator.deviceMemory)
       ? navigator.deviceMemory * 1024  // GB → MB
       : 2048;                           // 알 수 없으면 2GB 가정
-    this.lastUsageRatio = 0;            // 미측정
-    this.lastUsedMB  = -1;             // 미측정 표시
+    this.lastUsageRatio = 0;
+    this.lastUsedMB  = -1;
     this.lastTotalMB = deviceRAM;
-    this.measureMode = 'estimate';
+    // crossOriginIsolated 여부에 따라 원인 구분
+    this.measureMode = (typeof crossOriginIsolated !== 'undefined' && !crossOriginIsolated)
+      ? 'no-coi'      // Cross-Origin Isolated 아님 → coi-serviceworker 필요
+      : 'estimate';   // API 자체 미지원
     return { ratio: -1, usedMB: -1, totalMB: deviceRAM };
   },
 
@@ -273,6 +280,16 @@ CsvXlsx({
 }).then((instance) => {
   wasmModule  = instance;
   moduleReady = true;
+  // 진단: crossOriginIsolated 상태 및 performance.memory 가용 여부 로깅
+  const coi     = typeof crossOriginIsolated !== 'undefined' ? crossOriginIsolated : '(undefined)';
+  const hasMem  = typeof performance !== 'undefined' && !!performance.memory;
+  const memInfo = hasMem
+    ? `jsHeapSizeLimit=${(performance.memory.jsHeapSizeLimit/1024/1024).toFixed(0)}MB`
+    : '(없음)';
+  console.log(`[worker] crossOriginIsolated=${coi}, performance.memory=${hasMem}, ${memInfo}`);
+  self.postMessage({ type: "log", level: "info",
+    message: `진단 — crossOriginIsolated: ${coi} | performance.memory: ${hasMem} | ${memInfo}` });
+
   MemMgr.adjust();
 
   self.postMessage({ type: "log", level: "info",
@@ -359,6 +376,9 @@ async function handleStart(data) {
 
   self.postMessage({ type: "log", level: "info",
     message: `CSV 파싱 완료 — ${processedRows.toLocaleString()}행 | ${_sheetCount}개 파일 조립 중...` });
+
+  // 총 출력 파일 수 확정 → Flutter 조립 단계 진행률 계산용
+  self.postMessage({ type: "totalSheets", totalSheets: _sheetCount });
 
   await _chain;
   self.postMessage({ type: "done", totalFiles: _sheetCount, processedRows });
