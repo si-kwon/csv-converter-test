@@ -305,6 +305,7 @@ CsvXlsx({
     message: `진단 — crossOriginIsolated: ${coi} | performance.memory: ${hasMem} | ${memInfo}` });
 
   MemMgr.adjust();
+
   self.postMessage({ type: "log", level: "info",
     message: `WASM 초기화 완료 — 메모리 ${MemMgr.label()}` });
   if (pendingStart) { handleStart(pendingStart); pendingStart = null; }
@@ -326,6 +327,7 @@ function cleanup() {
   if (wasmModule) {
     try { wasmModule._init(0); } catch(_) {}
   }
+
 
 }
 
@@ -380,8 +382,11 @@ async function handleStart(data) {
       lastMemCheck = processedBytes;
     }
 
+    // processedBytes는 totalBytes 초과 방지 (파싱 완료 전 정확한 진행률 보장)
+    const reportedBytes = Math.min(processedBytes, totalBytes);
     self.postMessage({
-      type: "progress", processedRows, processedBytes, totalBytes,
+      type: "progress", processedRows,
+      processedBytes: reportedBytes, totalBytes,
       currentSheet: _sheetCount,
       memUsage: MemMgr.lastUsageRatio,
       memUsedMB: MemMgr.lastUsedMB,
